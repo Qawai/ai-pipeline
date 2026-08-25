@@ -576,8 +576,8 @@ document.getElementById('sbToggleBtn').innerHTML=ICON.menu;
 
 const LS={key:'orkey',theme:'theme',radius:'radius',consent:'consent',chats:'chats',current:'current'};
 const DEFAULT_KEY='sk-FcavtdWDByE1TvvHu4qnMlwYryHYQxcQMWPMCgEHmxdsCZZeDRIkowS6UIGQ7cyH';
-const DEFAULT_MODEL='deepseek/deepseek-chat-v3-0324:free';
-const MODELS=['deepseek/deepseek-chat-v3-0324:free','deepseek/deepseek-r1-distill-llama-70b:free','meta-llama/llama-3.3-7b-instruct:free','google/gemini-2.0-flash-exp:free','qwen/qwen2.5-7b-instruct:free','microsoft/phi-4-mini-instruct:free','openchat/openchat-7b:free'];
+const DEFAULT_MODEL='hy3-free';
+const MODELS=['hy3-free','big-pickle','x-preview-f-free','mimo-v2.5-free','nemotron-3-ultra-free','nemotron-3.5-lightning-free','deepseek-v4-flash','kimi-k2.5','gpt-5-nano','claude-haiku-4-5','glm-5.2'];
 
 function getKey(){ return DEFAULT_KEY; }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -697,7 +697,7 @@ function appendInfo(text, cls){
   const body=document.createElement('div'); body.className='body '+(cls||'stopped'); body.textContent=text; b.appendChild(body); wrap.appendChild(b); msg.scrollTop=msg.scrollHeight;
 }
 async function orStream(messages, model, signal, onToken){
-  const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+    const r=await fetch('https://opencode.ai/zen/v1/chat/completions',{
     method:'POST', signal,
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+getKey(),'HTTP-Referer':'https://qawai.github.io/ai-pipeline/','X-Title':'AI Pipeline'},
     body:JSON.stringify({model, messages, stream:true, temperature:0.7})
