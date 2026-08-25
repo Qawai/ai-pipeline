@@ -6,3 +6,6 @@ cloudflared.exe
 cf.log
 v.txt
 _cf.py
+.env
+*.env
+
