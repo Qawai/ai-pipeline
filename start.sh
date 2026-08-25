@@ -12,4 +12,5 @@ if ! command -v opencode >/dev/null 2>&1 && [ ! -x "$HOME/bin/opencode" ]; then
   echo "opencode installed"
 fi
 export PATH="$HOME/bin:$PATH"
+export PORT="${PORT:-5000}"
 exec python server.py
