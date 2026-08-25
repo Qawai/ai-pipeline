@@ -98,7 +98,6 @@ details.disc summary::-webkit-details-marker{display:none}
 <header>
   <button id="drawerToggle" class="iconbtn ghost" title="Агенты">☰</button>
   <div class="logo"><svg viewBox="0 0 24 24"><path d="M12 2 3 6v6c0 5 3.8 8.4 9 10 5.2-1.6 9-5 9-10V6l-9-4z"/></svg>AI Pipeline</div>
-  <span id="deviceTag" class="model"></span>
   <div class="spacer"></div>
   <select id="theme" title="Тема">
     <option value="midnight">Midnight</option><option value="light">Light</option><option value="mint">Mint</option>
@@ -329,7 +328,7 @@ $("#input").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.
 $("#stopBtn").onclick=()=>{ if(abortCtrl) abortCtrl.abort(); };
 $("#newChat").onclick=()=>newChat();
 $("#autoDiscuss").checked=auto; $("#autoDiscuss").onchange=e=>{auto=e.target.checked; save(LS.auto,auto);};
-$("#deviceTag").textContent="устройство: "+deviceId.slice(0,6);
+
 
 function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove("show"),2200); }
 
