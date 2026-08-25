@@ -1,0 +1,1 @@
+# opencode is installed at build time via render.yaml (binary download), not from pip.
