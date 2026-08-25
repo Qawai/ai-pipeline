@@ -1,0 +1,10 @@
+name = "ai-pipeline-proxy"
+main = "worker.js"
+compatibility_date = "2026-08-25"
+
+# Для админки (позже) раскомментируй и создай KV:
+# [vars]
+# ADMIN_CODE = "X8Ya_pVX-9RMVPmRPAZZgypBu-Gm8faPeFFmdavFLtV3_"
+# [[kv_namespaces]]
+# binding = "VISITS"
+# id = "REPLACE_WITH_KV_ID"

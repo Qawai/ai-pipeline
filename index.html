@@ -477,6 +477,8 @@
     .composer input#inp{font-size:16px}
   }
 </style>
+<style>.bubble{animation:fadein .25s ease both}@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}</style>
+<style>.bubble{animation:fadein .25s ease both}@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}</style>
 </head>
 <body data-theme="default">
   <input type="checkbox" id="sbToggle" class="sb-toggle-cb" hidden>
@@ -580,6 +582,9 @@ const DEFAULT_MODEL='hy3-free';
 const MODELS=['hy3-free','big-pickle','x-preview-f-free','mimo-v2.5-free','nemotron-3-ultra-free','nemotron-3.5-lightning-free','deepseek-v4-flash','kimi-k2.5','gpt-5-nano','claude-haiku-4-5','glm-5.2'];
 
 function getKey(){ return DEFAULT_KEY; }
+const _params=new URLSearchParams(location.search);
+let PROXY_URL=_params.get('p')||localStorage.getItem('proxy')||'';
+if(_params.get('p')){ localStorage.setItem('proxy',PROXY_URL); }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
 let CONSENT = localStorage.getItem(LS.consent)==='1';
@@ -676,18 +681,9 @@ function startBubble(agent, model, mode, round){
   b.appendChild(h); b.appendChild(body); b.appendChild(det); wrap.appendChild(b);
   return {textNode,caret,think:pre,det,raw:'',phase:'think'};
 }
-function appendToken(st, text){
-  const msg=document.getElementById('msg');
-  st.raw+=text;
-  if(st.phase==='think'){
-    const i=st.raw.indexOf('[[/THINK]]');
-    if(i>=0){ st.think.textContent=stripThink(st.raw.slice(0,i)); st.textNode.nodeValue=st.raw.slice(i+'[[/THINK]]'.length); st.phase='answer'; }
-    else { st.think.textContent=stripThink(st.raw); }
-  } else { st.textNode.nodeValue+=text; }
-  msg.scrollTop=msg.scrollHeight;
-}
+function appendThink(st, text){ st.think.textContent+=text; const msg=document.getElementById('msg'); msg.scrollTop=msg.scrollHeight; }
+function appendAns(st, text){ st.textNode.nodeValue+=text; const msg=document.getElementById('msg'); msg.scrollTop=msg.scrollHeight; }
 function finalizeBubble(st){
-  if(st.phase==='think'){ st.textNode.nodeValue=stripThink(st.raw); }
   if(!st.think.textContent.trim()) st.det.style.display='none';
   st.caret.remove();
 }
@@ -696,19 +692,21 @@ function appendInfo(text, cls){
   const b=document.createElement('div'); b.className='bubble';
   const body=document.createElement('div'); body.className='body '+(cls||'stopped'); body.textContent=text; b.appendChild(body); wrap.appendChild(b); msg.scrollTop=msg.scrollHeight;
 }
-async function orStream(messages, model, signal, onToken){
-    const r=await fetch('https://opencode.ai/zen/v1/chat/completions',{
+async function orStream(messages, model, signal, onThink, onAns){
+  if(!PROXY_URL) throw new Error('Прокси не настроен: откройте приложение с ?p=https://ВАШ.workers.dev');
+  const r=await fetch(PROXY_URL+'/zen/v1/chat/completions',{
     method:'POST', signal,
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+getKey(),'HTTP-Referer':'https://qawai.github.io/ai-pipeline/','X-Title':'AI Pipeline'},
     body:JSON.stringify({model, messages, stream:true, temperature:0.7})
   });
-  if(!r.ok){ const t=await r.text().catch(()=> ''); throw new Error('OpenRouter '+r.status+': '+t.slice(0,200)); }
+  if(!r.ok){ const t=await r.text().catch(()=> ''); throw new Error('Zen '+r.status+': '+t.slice(0,200)); }
   const reader=r.body.getReader(), dec=new TextDecoder(); let buf='';
   while(true){ const{done,value}=await reader.read(); if(done) break; buf+=dec.decode(value,{stream:true});
     let i; while((i=buf.indexOf('\n'))>=0){ let line=buf.slice(0,i).trim(); buf=buf.slice(i+1);
       if(!line.startsWith('data:')) continue; const d=line.slice(5).trim(); if(!d||d==='[DONE]') continue;
       try{ const j=JSON.parse(d); const dl=j.choices&&j.choices[0]&&j.choices[0].delta; if(!dl) continue;
-        if(dl.reasoning) onToken(dl.reasoning); if(dl.content) onToken(dl.content);
+        const rc=dl.reasoning_content||dl.reasoning;
+        if(rc) onThink(rc); if(dl.content) onAns(dl.content);
       }catch(e){} } }
 }
 function buildSystem(a, round, total, idx){
@@ -723,6 +721,7 @@ function buildSystem(a, round, total, idx){
 }
 async function sendMsg(){
   const inp=document.getElementById('inp'); const text=inp.value.trim(); if(!text) return;
+  if(!PROXY_URL){ alert('Прокси не настроен. Задеплой Cloudflare Worker (см. README) и открой приложение с ?p=https://ВАШ.workers.dev'); return; }
   const agents=CHAT.agents||[];
   if(!agents.length || agents.every(a=>(a.name||'').trim()==='')){ alert('Сначала добавьте хотя бы одного агента (шестерёнка → Параметры чата).'); return; }
   const m=document.getElementById('msg'); const wrap=m.querySelector('.msg-wrap');
@@ -739,7 +738,7 @@ async function sendMsg(){
         const st=startBubble(a, model, 'plan', round);
         const sys=buildSystem(a, round, agents.length, ai);
         const msgs=[{role:'system', content:sys}].concat(convo.map(x=>({role:x.role, content:x.content})));
-        await orStream(msgs, model, abortCtrl.signal, t=>appendToken(st,t));
+        await orStream(msgs, model, abortCtrl.signal, t=>appendThink(st,t), t=>appendAns(st,t));
         finalizeBubble(st);
         const ans=st.textNode.nodeValue;
         const msgObj={role:'agent', name:a.name, model, text:ans, think:st.think.textContent, round};
