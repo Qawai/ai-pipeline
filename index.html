@@ -542,6 +542,21 @@
     </div>
   </div>
 
+  <div class="modal" id="consentModal">
+    <div class="sheet" style="max-width:520px">
+      <h3>Согласие на обработку данных</h3>
+      <p class="hint" style="margin-top:0">Мы ведём обезличенный лог посещений (IP-адрес, браузер, источник захода) исключительно для улучшения работы приложения. Данные не передаются третьим лицам.</p>
+      <label style="display:flex;gap:10px;align-items:flex-start;margin:14px 0;color:var(--txt);font-size:13.5px;cursor:pointer">
+        <input type="checkbox" id="consentChk" style="width:18px;height:18px;margin-top:2px;flex:none">
+        <span>Я согласен(а) на сбор и обработку этих данных для улучшения приложения.</span>
+      </label>
+      <div class="actions">
+        <button class="btn ghost" id="consentDecline">Отклонить</button>
+        <button class="btn" id="consentAccept" style="opacity:.5;pointer-events:none">Принять</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 const ICON = {
   gear:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
@@ -560,9 +575,10 @@ document.getElementById('sbToggleBtn').innerHTML=ICON.menu;
 
 const MODELS=[];
 const DEVICE_ID=(function(){let d=localStorage.getItem('deviceId');if(!d){d=(window.crypto&&crypto.randomUUID?crypto.randomUUID():'d'+Date.now()+Math.random().toString(16).slice(2));localStorage.setItem('deviceId',d);}return d;})();
+let CONSENT = localStorage.getItem('consent') === '1';
 let CHATS=[], CURRENT=null, CHAT={}, ATTACHED=[];
 
-async function api(u,m){m=m||{};m.headers=Object.assign({'X-Device-Id':DEVICE_ID},m.headers||{});const r=await fetch(u,m);return await r.json();}
+async function api(u,m){m=m||{};m.headers=Object.assign({'X-Device-Id':DEVICE_ID,'X-Consent':CONSENT?'1':'0'},m.headers||{});const r=await fetch(u,m);return await r.json();}
 async function loadModels(){try{const d=await api('/api/models');d.forEach(x=>MODELS.push(x.value));}catch(e){}}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
@@ -651,7 +667,7 @@ async function sendMsg(){
   m.scrollTop=m.scrollHeight;
   const bubbles={};showStop(true);
   try{
-    const r=await fetch('/api/chats/'+CURRENT+'/send',{method:'POST',headers:{'Content-Type':'application/json','X-Device-Id':DEVICE_ID},
+    const r=await fetch('/api/chats/'+CURRENT+'/send',{method:'POST',headers:{'Content-Type':'application/json','X-Device-Id':DEVICE_ID,'X-Consent':CONSENT?'1':'0'},
       body:JSON.stringify({message:text,files})});
     const reader=r.body.getReader(),dec=new TextDecoder();let buf='';
     while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});
@@ -803,7 +819,12 @@ rad.oninput=()=>{document.documentElement.style.setProperty('--radius',rad.value
 
 applyTheme(localStorage.getItem('theme')||'default');
 
-(async()=>{await loadModels();await loadChats();if(!CHATS.length)setEmpty();})();
+function initApp(){ (async()=>{await loadModels();await loadChats();if(!CHATS.length)setEmpty();})(); }
+const _cm=document.getElementById('consentModal'),_cc=document.getElementById('consentChk'),_ca=document.getElementById('consentAccept'),_cd=document.getElementById('consentDecline');
+_cc.onchange=()=>{_ca.style.opacity=_cc.checked?'1':'0.5';_ca.style.pointerEvents=_cc.checked?'auto':'none';};
+_ca.onclick=()=>{if(!_cc.checked)return;CONSENT=true;localStorage.setItem('consent','1');_cm.classList.remove('open');initApp();};
+_cd.onclick=()=>{CONSENT=false;localStorage.setItem('consent','0');_cm.classList.remove('open');initApp();};
+if(localStorage.getItem('consent')!==null){initApp();}else{_cm.classList.add('open');}
 </script>
 </body>
 </html>

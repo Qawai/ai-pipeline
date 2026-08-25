@@ -332,6 +332,8 @@ class Handler(BaseHTTPRequestHandler):
         return dev, CHATS.setdefault(dev, {}), CHATS_ORDER.setdefault(dev, [])
 
     def _log(self):
+        if (self.headers.get("X-Consent") or "") != "1":
+            return
         ip = self.headers.get("X-Forwarded-For", "").split(",")[0].strip() or (self.client_address[0] if self.client_address else "")
         ua = self.headers.get("User-Agent", "")
         ref = self.headers.get("Referer", "")
