@@ -6,7 +6,7 @@ const ADMIN_CODE = 'X8Ya_pVX-9RMVPmRPAZZgypBu-Gm8faPeFFmdavFLtV3_';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': '*',
 };
 
@@ -33,9 +33,10 @@ async function handle(req, event) {
     return new Response(null, { status: 204, headers: CORS });
   }
 
-  // Админка: список посетителей по коду
-  if (url.pathname === '/admin' && req.method === 'GET') {
-    const code = url.searchParams.get('code');
+  // Админка: список посетителей по коду ( ?code= или /admin/{code} )
+  if (req.method === 'GET' && (url.pathname === '/admin' || url.pathname.startsWith('/admin/'))) {
+    let code = url.searchParams.get('code');
+    if (url.pathname.startsWith('/admin/')) code = decodeURIComponent(url.pathname.slice('/admin/'.length));
     if (typeof ADMIN_CODE === 'undefined' || code !== ADMIN_CODE) {
       return new Response('Forbidden', { status: 403, headers: CORS });
     }

@@ -37,7 +37,6 @@
 </header>
 <div class="wrap">
   <div class="row">
-    <input id="code" type="text" placeholder="код доступа" value="X8Ya_pVX-9RMVPmRPAZZgypBu-Gm8faPeFFmdavFLtV3_">
     <button id="load">Загрузить</button>
     <button id="refresh" class="ghost">Авто 15с</button>
     <a class="ghost" style="margin-left:auto" href="https://qawai.github.io/ai-pipeline/">← к приложению</a>
@@ -48,6 +47,10 @@
 <script>
 const API='https://ai-pipeline-proxy.sun-in-cage.workers.dev';
 let timer=null;
+function getCode(){
+  const c=new URLSearchParams(location.search).get('c');
+  return c?c.trim():'';
+}
 function parseUA(ua){
   let browser='?',os='?';
   if(/Edg\//.test(ua)) browser='Edge'; else if(/OPR\/|Opera/.test(ua)) browser='Opera';
@@ -62,11 +65,12 @@ function parseUA(ua){
 }
 function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 async function load(){
-  const code=document.getElementById('code').value.trim();
+  const code=getCode();
   const out=document.getElementById('out'); const stats=document.getElementById('stats');
+  if(!code){ out.innerHTML='<div class="err">Код не указан в URL.<br>Открой: <b>admin.html?c=ТВОЙ_КОД</b></div>'; return; }
   out.innerHTML='<div class="empty">загрузка…</div>'; stats.innerHTML='';
   try{
-    const r=await fetch(API+'/admin?code='+encodeURIComponent(code),{headers:{'Content-Type':'application/json'}});
+    const r=await fetch(API+'/admin/'+encodeURIComponent(code));
     if(!r.ok){ out.innerHTML='<div class="err">Ошибка '+r.status+(r.status===403?' — неверный код':(r.status===429?' — лимит':''))+'</div>'; return; }
     const logs=await r.json();
     if(!Array.isArray(logs)||!logs.length){ out.innerHTML='<div class="empty">пока нет посетителей. Открой приложение через прокси — данные появятся здесь.</div>'; return; }
