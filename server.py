@@ -23,7 +23,16 @@ LOCK = threading.RLock()
 MODELS = []
 MODELS_LOCK = threading.Lock()
 
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+def _env(name):
+    if name in os.environ:
+        return os.environ[name]
+    low = name.lower()
+    for k, v in os.environ.items():
+        if k.lower() == low:
+            return v
+    return None
+
+ADMIN_PASSWORD = _env("ADMIN_PASSWORD")
 ADMIN_TOKENS = set()
 ADMIN_LOCK = threading.Lock()
 VISITS = []
