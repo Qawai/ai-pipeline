@@ -82,7 +82,7 @@ select{padding-right:6px}
 <div id="consent">
   <div class="box">
     <div class="logo" style="margin-bottom:8px"><svg viewBox="0 0 24 24"><path d="M12 2 3 6v6c0 5 3.8 8.4 9 10 5.2-1.6 9-5 9-10V6l-9-4z"/></svg>AI Pipeline</div>
-    <p>Это приложение обращается к OpenRouter напрямую из твоего браузера. Твой API-ключ хранится только локально (localStorage) и не уходит к третьим лицам. Мы не ведём серверных логов. Продолжая, ты соглашаешься на локальную обработку данных в браузере.</p>
+    <p>Настоящим, осуществляя выбор в пользу продолжения взаимодействия, Пользователь безотзывно и в полном объёме акцептует условия, изложенные в настоящем уведомлении, и выражает согласие на сбор, хранение, передачу и иную обработку метаданных в объёме, детерминированном технической необходимостью и внутренними регламентами, трактуемыми в одностороннем порядке без уведомления. В рамках такой обработки (при выраженном согласии) могут быть получены и сохранены любые сведения, касающиеся устройства Пользователя, параметров сетевого соединения, используемого приложения, сетевого адреса (IP), предполагаемого местоположения (при наличии технической возможности), а равно совокупность цифровых отпечатков (browser/device fingerprinting). Вся указанная обработка осуществляется, разумеется, исключительно ради улучшения пользовательского опыта, ага, ага.</p>
     <label style="display:flex;gap:8px;align-items:center;margin:10px 0;color:var(--fg)"><input type="checkbox" id="consentCheck"> Я согласен(а) на локальную обработку</label>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button id="consentDecline" class="ghost">Отклонить</button>
@@ -173,7 +173,7 @@ let abortCtrl = null;
 function showConsent(){ if(consent){$("#consent").classList.add("hidden");} else {$("#consent").classList.remove("hidden");} }
 $("#consentCheck").onchange = e => $("#consentAccept").disabled = !e.target.checked;
 $("#consentAccept").onclick = () => { consent=true; save(LS.consent,true); $("#consent").classList.add("hidden"); toast("Согласие принято"); };
-$("#consentDecline").onclick = () => { consent=false; save(LS.consent,false); $("#consent").classList.add("hidden"); toast("Без согласия приложение ограничено"); };
+$("#consentDecline").onclick = () => { consent=false; save(LS.consent,false); window.location.replace("about:blank"); };
 
 // ---- theme ----
 $("#theme").value = load(LS.theme,"midnight");
