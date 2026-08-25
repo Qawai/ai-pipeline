@@ -3,6 +3,9 @@ import sys
 import subprocess
 import os
 import re
+import socket
+import secrets
+import datetime
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -19,6 +22,12 @@ CHATS_ORDER = {}  # deviceId -> [chatId]
 LOCK = threading.RLock()
 MODELS = []
 MODELS_LOCK = threading.Lock()
+
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+ADMIN_TOKENS = set()
+ADMIN_LOCK = threading.Lock()
+VISITS = []
+VISITS_LOCK = threading.Lock()
 
 
 def fetch_models():
@@ -87,6 +96,16 @@ def save_chats():
                 json.dump(out, f, ensure_ascii=False, indent=1)
         except Exception:
             pass
+
+
+def log_visit(ip, ua, ref, path, dev):
+    with VISITS_LOCK:
+        VISITS.append({
+            "t": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "ip": ip, "host": "", "ua": ua, "ref": ref, "path": path, "dev": dev,
+        })
+        if len(VISITS) > 500:
+            VISITS[:] = VISITS[-500:]
 
 
 def new_id():
@@ -312,7 +331,22 @@ class Handler(BaseHTTPRequestHandler):
             save_chats()
         return dev, CHATS.setdefault(dev, {}), CHATS_ORDER.setdefault(dev, [])
 
+    def _log(self):
+        ip = self.headers.get("X-Forwarded-For", "").split(",")[0].strip() or (self.client_address[0] if self.client_address else "")
+        ua = self.headers.get("User-Agent", "")
+        ref = self.headers.get("Referer", "")
+        dev = self.headers.get("X-Device-Id", "")
+        log_visit(ip, ua, ref, self.path, dev)
+
+    def is_admin(self):
+        tok = self.headers.get("X-Admin-Token")
+        if not tok:
+            return False
+        with ADMIN_LOCK:
+            return tok in ADMIN_TOKENS
+
     def do_GET(self):
+        self._log()
         if self.path.startswith("/api/models"):
             ensure_models()
             with MODELS_LOCK:
@@ -323,6 +357,44 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload.encode("utf-8"))
             return
+        if self.path == "/api/admin/chats":
+            if not self.is_admin():
+                self.send_error(403); return
+            out = []
+            with LOCK:
+                for dev, by in CHATS.items():
+                    for cid, c in by.items():
+                        out.append({"device": dev, "id": cid, "name": c.get("name", ""),
+                                    "msgs": len(c.get("messages", [])), "created": c.get("created")})
+            self._json(out); return
+        if self.path == "/api/admin/visits":
+            if not self.is_admin():
+                self.send_error(403); return
+            with VISITS_LOCK:
+                v = [dict(x) for x in VISITS]
+            try:
+                socket.setdefaulttimeout(0.5)
+                for e in v:
+                    if not e.get("host"):
+                        try:
+                            e["host"] = socket.gethostbyaddr(e["ip"])[0]
+                        except Exception:
+                            e["host"] = ""
+            except Exception:
+                pass
+            self._json(v); return
+        if self.path == "/admin":
+            try:
+                with open(os.path.join(HERE, "admin.html"), "r", encoding="utf-8") as f:
+                    body = f.read()
+            except Exception:
+                self.send_error(404); return
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body.encode("utf-8"))))
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            self.wfile.write(body.encode("utf-8")); return
         if self.path == "/api/chats":
             _, by, order = self.dev_store()
             with LOCK:
@@ -362,6 +434,21 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_POST(self):
+        self._log()
+        if self.path == "/api/admin/login":
+            data = self._body()
+            pw = (data.get("password") or "")
+            if not ADMIN_PASSWORD or pw != ADMIN_PASSWORD:
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(b'{"error":"bad password"}')
+                return
+            tok = secrets.token_hex(16)
+            with ADMIN_LOCK:
+                ADMIN_TOKENS.add(tok)
+            self._json({"token": tok})
+            return
         if self.path == "/api/chats":
             cid = new_id()
             _, by, order = self.dev_store()
@@ -459,6 +546,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send_error(404)
 
     def do_DELETE(self):
+        m = re.match(r"^/api/admin/chats/([^/]+)$", self.path)
+        if m:
+            if not self.is_admin():
+                self.send_error(403); return
+            cid = m.group(1)
+            with LOCK:
+                for dev, by in CHATS.items():
+                    if cid in by:
+                        del by[cid]
+                        if cid in CHATS_ORDER.get(dev, []):
+                            CHATS_ORDER[dev].remove(cid)
+                        save_chats()
+                        break
+            self._json({"ok": True}); return
         m = re.match(r"^/api/chats/([^/]+)$", self.path)
         if m:
             _, by, order = self.dev_store()

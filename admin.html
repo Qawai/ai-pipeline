@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Админка</title>
+<style>
+  :root{--bg:#0f1115;--panel:#161922;--panel2:#1d212c;--border:#2a2f3a;--txt:#e7e9ee;--muted:#9aa3b2;--accent:#6366f1;--accent2:#a855f7;--err:#f87171;--ok:#34d399}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:ui-monospace,"Cascadia Code",Consolas,monospace;padding:22px;font-size:14px;line-height:1.55}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);margin-bottom:18px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:18px}
+  .card h2{font-size:15px;margin:0 0 12px}
+  input{padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--txt);font-family:inherit;font-size:14px;outline:none}
+  input:focus{border-color:var(--accent)}
+  button{cursor:pointer;padding:11px 16px;border-radius:10px;border:1px solid var(--border);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;font-family:inherit;font-size:13px}
+  button.ghost{background:transparent;color:var(--txt)}
+  button.del{background:transparent;border-color:var(--err);color:var(--err)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel)}
+  .wrap{max-width:1100px;margin:0 auto}
+  .err{color:var(--err)}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .pill{font-size:11px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:99px;padding:2px 9px}
+  .mono{font-size:12px;color:var(--muted);word-break:break-all}
+  .tbl-scroll{max-height:52vh;overflow:auto}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Админка ИИ-оркестратора</h1>
+  <div class="sub">Защищено паролем. Визиты логируются только в первом лице (IP, обратный DNS, User-Agent, источник, устройство).</div>
+
+  <div class="card" id="loginCard">
+    <h2>Вход</h2>
+    <div class="row">
+      <input type="password" id="pw" placeholder="Пароль админа" style="min-width:240px">
+      <button id="loginBtn">Войти</button>
+      <span class="err" id="loginErr"></span>
+    </div>
+  </div>
+
+  <div id="panel" style="display:none">
+    <div class="card">
+      <h2>Чаты (по всем устройствам) — <span id="chatCount" class="pill">0</span></h2>
+      <div class="tbl-scroll">
+        <table id="chatTbl">
+          <thead><tr><th>Устройство</th><th>ID</th><th>Название</th><th>Сообщ.</th><th>Создан</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="ghost" id="refreshChats">Обновить</button></div>
+    </div>
+
+    <div class="card">
+      <h2>Визиты (последние 500) — <span id="visitCount" class="pill">0</span></h2>
+      <div class="tbl-scroll">
+        <table id="visitTbl">
+          <thead><tr><th>Время</th><th>IP</th><th>DNS (PTR)</th><th>User-Agent</th><th>Источник</th><th>Путь</th><th>Устройство</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="ghost" id="refreshVisits">Обновить</button></div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <button class="ghost" id="logoutBtn">Выйти</button>
+        <span class="mono">Токен хранится в localStorage этого браузера.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN_KEY = "adminToken";
+function token(){ return localStorage.getItem(TOKEN_KEY) || ""; }
+function authH(h){ h = h || {}; if(token()) h["X-Admin-Token"] = token(); return h; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+
+async function login(){
+  const pw = document.getElementById("pw").value;
+  const r = await fetch("/api/admin/login", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({password:pw})});
+  if(r.status !== 200){ document.getElementById("loginErr").textContent = "Неверный пароль"; return; }
+  const d = await r.json();
+  localStorage.setItem(TOKEN_KEY, d.token);
+  showPanel();
+}
+async function loadChats(){
+  const r = await fetch("/api/admin/chats", {headers: authH()});
+  if(r.status === 403){ logout(); return; }
+  const list = await r.json();
+  document.getElementById("chatCount").textContent = list.length;
+  const tb = document.querySelector("#chatTbl tbody"); tb.innerHTML = "";
+  list.forEach(c=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>"+esc(c.device)+"</td><td class='mono'>"+esc(c.id)+"</td><td>"+esc(c.name)+
+      "</td><td>"+esc(c.msgs)+"</td><td>"+esc(c.created?new Date(c.created*1000).toLocaleString():"")+"</td><td></td>";
+    const td = tr.lastElementChild;
+    const b = document.createElement("button"); b.className="del"; b.textContent="Удалить";
+    b.onclick = async ()=>{ if(!confirm("Удалить чат «"+c.name+"»?")) return;
+      const rr = await fetch("/api/admin/chats/"+c.id, {method:"DELETE", headers: authH()});
+      if(rr.ok) loadChats(); };
+    td.appendChild(b);
+    tb.appendChild(tr);
+  });
+}
+async function loadVisits(){
+  const r = await fetch("/api/admin/visits", {headers: authH()});
+  if(r.status === 403){ logout(); return; }
+  const list = await r.json();
+  document.getElementById("visitCount").textContent = list.length;
+  const tb = document.querySelector("#visitTbl tbody"); tb.innerHTML = "";
+  list.slice().reverse().forEach(v=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>"+esc(v.t)+"</td><td>"+esc(v.ip)+"</td><td>"+esc(v.host)+
+      "</td><td class='mono'>"+esc(v.ua)+"</td><td class='mono'>"+esc(v.ref)+
+      "</td><td>"+esc(v.path)+"</td><td>"+esc(v.dev)+"</td>";
+    tb.appendChild(tr);
+  });
+}
+function showPanel(){
+  document.getElementById("loginCard").style.display = "none";
+  document.getElementById("panel").style.display = "block";
+  loadChats(); loadVisits();
+}
+function logout(){ localStorage.removeItem(TOKEN_KEY); document.getElementById("loginCard").style.display="block"; document.getElementById("panel").style.display="none"; }
+
+document.getElementById("loginBtn").onclick = login;
+document.getElementById("pw").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
+document.getElementById("refreshChats").onclick = loadChats;
+document.getElementById("refreshVisits").onclick = loadVisits;
+document.getElementById("logoutBtn").onclick = logout;
+if(token()) showPanel();
+</script>
+</body>
+</html>
