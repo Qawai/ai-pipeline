@@ -6,9 +6,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL -o /tmp/opencode.tar.gz \
       https://github.com/anomalyco/opencode/releases/latest/download/opencode-linux-x64.tar.gz \
-    && tar -xzf /tmp/opencode.tar.gz -C /usr/local/bin \
+    && mkdir -p /tmp/oc \
+    && tar -xzf /tmp/opencode.tar.gz -C /tmp/oc \
+    && find /tmp/oc -name opencode -type f -exec cp {} /usr/local/bin/opencode \; \
     && chmod +x /usr/local/bin/opencode \
-    && rm -f /tmp/opencode.tar.gz
+    && rm -rf /tmp/oc /tmp/opencode.tar.gz
 RUN opencode --version
 
 WORKDIR /app
