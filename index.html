@@ -694,12 +694,20 @@ function appendInfo(text, cls){
 }
 async function orStream(messages, model, signal, onThink, onAns){
   if(!PROXY_URL) throw new Error('Прокси не настроен: откройте приложение с ?p=https://ВАШ.workers.dev');
-  const r=await fetch(PROXY_URL+'/zen/v1/chat/completions',{
-    method:'POST', signal,
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+getKey()},
-    body:JSON.stringify({model, messages, stream:true, temperature:0.7})
-  });
-  if(!r.ok){ const t=await r.text().catch(()=> ''); throw new Error('Zen '+r.status+': '+t.slice(0,200)); }
+  let r, attempt=0;
+  while(true){
+    if(signal&&signal.aborted) throw {stopped:true};
+    try{
+      r=await fetch(PROXY_URL+'/zen/v1/chat/completions',{
+        method:'POST', signal,
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+getKey()},
+        body:JSON.stringify({model, messages, stream:true, temperature:0.7})
+      });
+    }catch(e){ throw new Error('Сетевая ошибка: не удалось соединиться с прокси. Проверь параметр ?p= и что воркер доступен.'); }
+    if(r.ok) break;
+    if(r.status===429 && attempt<4){ attempt++; await new Promise(s=>setTimeout(s, 12000)); continue; }
+    const t=await r.text().catch(()=> ''); throw new Error('Zen '+r.status+': '+t.slice(0,200));
+  }
   const reader=r.body.getReader(), dec=new TextDecoder(); let buf='';
   while(true){ const{done,value}=await reader.read(); if(done) break; buf+=dec.decode(value,{stream:true});
     let i; while((i=buf.indexOf('\n'))>=0){ let line=buf.slice(0,i).trim(); buf=buf.slice(i+1);

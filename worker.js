@@ -51,12 +51,20 @@ async function handle(req, event) {
   }
 
   const target = 'https://opencode.ai' + url.pathname + url.search;
-  const up = await fetch(target, {
-    method: req.method,
-    headers: req.headers,
-    body: req.body,
-    redirect: 'follow',
-  });
+  let up;
+  try {
+    up = await fetch(target, {
+      method: req.method,
+      headers: req.headers,
+      body: req.body,
+      redirect: 'follow',
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'upstream_unreachable', detail: String(e) }), {
+      status: 502,
+      headers: Object.assign({}, CORS, { 'Content-Type': 'application/json' }),
+    });
+  }
   const resp = new Response(up.body, up);
   resp.headers.set('Access-Control-Allow-Origin', '*');
   return resp;
