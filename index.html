@@ -584,6 +584,7 @@ const MODELS=['hy3-free','big-pickle','x-preview-f-free','mimo-v2.5-free','nemot
 function getKey(){ return DEFAULT_KEY; }
 const _params=new URLSearchParams(location.search);
 let PROXY_URL=_params.get('p')||localStorage.getItem('proxy')||'';
+const SAME_ORIGIN_OK = location.hostname.endsWith('pages.dev');
 if(_params.get('p')){ localStorage.setItem('proxy',PROXY_URL); }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
@@ -693,7 +694,7 @@ function appendInfo(text, cls){
   const body=document.createElement('div'); body.className='body '+(cls||'stopped'); body.textContent=text; b.appendChild(body); wrap.appendChild(b); msg.scrollTop=msg.scrollHeight;
 }
 async function orStream(messages, model, signal, onThink, onAns){
-  if(!PROXY_URL) throw new Error('Прокси не настроен: откройте приложение с ?p=https://ВАШ.workers.dev');
+  if(!PROXY_URL && !SAME_ORIGIN_OK) throw new Error('Прокси не настроен: откройте приложение с ?p=https://ВАШ.workers.dev (или на Cloudflare Pages)');
   let r, attempt=0;
   while(true){
     if(signal&&signal.aborted) throw {stopped:true};
@@ -729,7 +730,7 @@ function buildSystem(a, round, total, idx){
 }
 async function sendMsg(){
   const inp=document.getElementById('inp'); const text=inp.value.trim(); if(!text) return;
-  if(!PROXY_URL){ alert('Прокси не настроен. Задеплой Cloudflare Worker (см. README) и открой приложение с ?p=https://ВАШ.workers.dev'); return; }
+  if(!PROXY_URL && !SAME_ORIGIN_OK){ alert('Прокси не настроен. Откройте приложение на Cloudflare Pages (same-origin) или с ?p=https://ВАШ.workers.dev'); return; }
   const agents=CHAT.agents||[];
   if(!agents.length || agents.every(a=>(a.name||'').trim()==='')){ alert('Сначала добавьте хотя бы одного агента (шестерёнка → Параметры чата).'); return; }
   const m=document.getElementById('msg'); const wrap=m.querySelector('.msg-wrap');

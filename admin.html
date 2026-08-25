@@ -39,13 +39,13 @@
   <div class="row">
     <button id="load">Загрузить</button>
     <button id="refresh" class="ghost">Авто 15с</button>
-    <a class="ghost" style="margin-left:auto" href="https://qawai.github.io/ai-pipeline/">← к приложению</a>
+    <a class="ghost" style="margin-left:auto" href="./">← к приложению</a>
   </div>
   <div id="stats" class="stats"></div>
   <div id="out"></div>
 </div>
 <script>
-const API='https://ai-pipeline-proxy.sun-in-cage.workers.dev';
+const API='';
 let timer=null;
 function getCode(){
   const c=new URLSearchParams(location.search).get('c');
