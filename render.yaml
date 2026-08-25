@@ -7,3 +7,7 @@ services:
     envVars:
       - key: PORT
         value: "8787"
+      # Ключ провайдера бесплатных моделей (например, OpenRouter).
+      # Вставь ЗНАЧЕНИЕ ключа в дашборде хостинга (Secrets/Env), не в этот файл.
+      # Если провайдер другой — переименуй переменную (OPENAI_API_KEY и т.п.).
+      - key: OPENROUTER_API_KEY

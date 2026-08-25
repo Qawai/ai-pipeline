@@ -209,7 +209,7 @@ def run_pipeline(chat, send):
                 name = (ag.get("name") or "Агент").strip() or "Агент"
                 role = ag.get("role") or ""
                 model = (ag.get("model") or "").strip()
-                mode = (ag.get("mode") or "plan").strip().lower()
+                mode = "plan"  # только Plan: Build запрещён на уровне системы, входящий mode игнорируется
                 agent_id = AGENT_NAME
                 prompt = build_prompt(role, chat.get("transcript", ""), chat.get("behavior", ""))
                 send({
