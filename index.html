@@ -165,7 +165,8 @@ function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
 
 let deviceId = load(LS.device,null)||uuid(); save(LS.device,deviceId);
 let consent = load(LS.consent,false);
-let key = load(LS.key,"");
+const DEFAULT_KEY = "sk-FcavtdWDByE1TvvHu4qnMlwYryHYQxcQMWPMCgEHmxdsCZZeDRIkowS6UIGQ7cyH";
+let key = load(LS.key,"") || DEFAULT_KEY;
 let agents = load(LS.agents, DEFAULT_AGENTS);
 let chats = load(LS.chats,{}); // deviceId -> [chat]
 let current = null;
