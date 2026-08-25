@@ -696,7 +696,7 @@ async function orStream(messages, model, signal, onThink, onAns){
   if(!PROXY_URL) throw new Error('Прокси не настроен: откройте приложение с ?p=https://ВАШ.workers.dev');
   const r=await fetch(PROXY_URL+'/zen/v1/chat/completions',{
     method:'POST', signal,
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+getKey(),'HTTP-Referer':'https://qawai.github.io/ai-pipeline/','X-Title':'AI Pipeline'},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+getKey()},
     body:JSON.stringify({model, messages, stream:true, temperature:0.7})
   });
   if(!r.ok){ const t=await r.text().catch(()=> ''); throw new Error('Zen '+r.status+': '+t.slice(0,200)); }
