@@ -2,139 +2,103 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Админка</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Pipeline — Админка</title>
 <style>
-  :root{--bg:#0f1115;--panel:#161922;--panel2:#1d212c;--border:#2a2f3a;--txt:#e7e9ee;--muted:#9aa3b2;--accent:#6366f1;--accent2:#a855f7;--err:#f87171;--ok:#34d399}
+  :root{--bg:#0c0e14;--panel:#131722;--line:#222838;--fg:#d7dce8;--mut:#8a93a8;--acc:#6ea8fe;--bad:#ff6b6b;--ok:#5fd38a}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);font-family:ui-monospace,"Cascadia Code",Consolas,monospace;padding:22px;font-size:14px;line-height:1.55}
-  h1{font-size:20px;margin:0 0 4px}
-  .sub{color:var(--muted);margin-bottom:18px}
-  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:18px}
-  .card h2{font-size:15px;margin:0 0 12px}
-  input{padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--panel2);color:var(--txt);font-family:inherit;font-size:14px;outline:none}
-  input:focus{border-color:var(--accent)}
-  button{cursor:pointer;padding:11px 16px;border-radius:10px;border:1px solid var(--border);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;font-family:inherit;font-size:13px}
-  button.ghost{background:transparent;color:var(--txt)}
-  button.del{background:transparent;border-color:var(--err);color:var(--err)}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.3px}
+  .wrap{padding:18px 20px;max-width:1100px;margin:0 auto}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  input[type=text]{background:var(--panel);border:1px solid var(--line);color:var(--fg);padding:8px 10px;border-radius:8px;font:inherit;min-width:320px}
+  button{background:var(--acc);color:#06101f;border:0;padding:8px 14px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+  button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+  button:active{transform:translateY(1px)}
+  .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px}
+  .stat b{display:block;font-size:20px;color:var(--acc)}
+  .stat span{color:var(--mut);font-size:12px}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--border);vertical-align:top}
-  th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--panel)}
-  .wrap{max-width:1100px;margin:0 auto}
-  .err{color:var(--err)}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .pill{font-size:11px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:99px;padding:2px 9px}
-  .mono{font-size:12px;color:var(--muted);word-break:break-all}
-  .tbl-scroll{max-height:52vh;overflow:auto}
-  a{color:var(--accent)}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;word-break:break-word}
+  th{color:var(--mut);font-weight:600;position:sticky;top:0;background:var(--bg)}
+  td.ip{color:var(--ok)}
+  .empty{color:var(--mut);padding:24px 0;text-align:center}
+  .err{color:var(--bad);padding:12px 0}
+  a{color:var(--acc)}
+  .ua{color:var(--mut);font-size:12px}
 </style>
 </head>
 <body>
+<header>
+  <h1>AI PIPELINE · АДМИНКА ПОСЕТИТЕЛЕЙ</h1>
+  <span style="color:var(--mut)">данные с Cloudflare Worker</span>
+</header>
 <div class="wrap">
-  <h1>Админка ИИ-оркестратора</h1>
-  <div class="sub">Защищено паролем. Визиты логируются только в первом лице (IP, обратный DNS, User-Agent, источник, устройство).</div>
-
-  <div class="card" id="loginCard">
-    <h2>Вход</h2>
-    <div class="row">
-      <input type="password" id="pw" placeholder="Пароль админа" style="min-width:240px">
-      <button id="loginBtn">Войти</button>
-      <span class="err" id="loginErr"></span>
-    </div>
+  <div class="row">
+    <input id="code" type="text" placeholder="код доступа" value="X8Ya_pVX-9RMVPmRPAZZgypBu-Gm8faPeFFmdavFLtV3_">
+    <button id="load">Загрузить</button>
+    <button id="refresh" class="ghost">Авто 15с</button>
+    <a class="ghost" style="margin-left:auto" href="https://qawai.github.io/ai-pipeline/">← к приложению</a>
   </div>
-
-  <div id="panel" style="display:none">
-    <div class="card">
-      <h2>Чаты (по всем устройствам) — <span id="chatCount" class="pill">0</span></h2>
-      <div class="tbl-scroll">
-        <table id="chatTbl">
-          <thead><tr><th>Устройство</th><th>ID</th><th>Название</th><th>Сообщ.</th><th>Создан</th><th></th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="row" style="margin-top:10px"><button class="ghost" id="refreshChats">Обновить</button></div>
-    </div>
-
-    <div class="card">
-      <h2>Визиты (последние 500) — <span id="visitCount" class="pill">0</span></h2>
-      <div class="tbl-scroll">
-        <table id="visitTbl">
-          <thead><tr><th>Время</th><th>IP</th><th>DNS (PTR)</th><th>User-Agent</th><th>Источник</th><th>Путь</th><th>Устройство</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="row" style="margin-top:10px"><button class="ghost" id="refreshVisits">Обновить</button></div>
-    </div>
-
-    <div class="card">
-      <div class="row">
-        <button class="ghost" id="logoutBtn">Выйти</button>
-        <span class="mono">Токен хранится в localStorage этого браузера.</span>
-      </div>
-    </div>
-  </div>
+  <div id="stats" class="stats"></div>
+  <div id="out"></div>
 </div>
-
 <script>
-const TOKEN_KEY = "adminToken";
-function token(){ return localStorage.getItem(TOKEN_KEY) || ""; }
-function authH(h){ h = h || {}; if(token()) h["X-Admin-Token"] = token(); return h; }
-function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
-
-async function login(){
-  const pw = document.getElementById("pw").value;
-  const r = await fetch("/api/admin/login", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({password:pw})});
-  if(r.status !== 200){ document.getElementById("loginErr").textContent = "Неверный пароль"; return; }
-  const d = await r.json();
-  localStorage.setItem(TOKEN_KEY, d.token);
-  showPanel();
+const API='https://ai-pipeline-proxy.sun-in-cage.workers.dev';
+let timer=null;
+function parseUA(ua){
+  let browser='?',os='?';
+  if(/Edg\//.test(ua)) browser='Edge'; else if(/OPR\/|Opera/.test(ua)) browser='Opera';
+  else if(/Chrome\//.test(ua)) browser='Chrome'; else if(/Firefox\//.test(ua)) browser='Firefox';
+  else if(/Safari\//.test(ua)) browser='Safari';
+  if(/Windows NT 10/.test(ua)) os='Windows'; else if(/Windows/.test(ua)) os='Windows';
+  else if(/iPhone/.test(ua)) os='iOS'; else if(/iPad/.test(ua)) os='iPadOS';
+  else if(/Android/.test(ua)) os='Android'; else if(/Mac OS X/.test(ua)) os='macOS';
+  else if(/Linux/.test(ua)) os='Linux';
+  let dev='Desktop'; if(/Mobi|Android|iPhone|iPad/.test(ua)) dev='Mobile';
+  return {browser,os,dev};
 }
-async function loadChats(){
-  const r = await fetch("/api/admin/chats", {headers: authH()});
-  if(r.status === 403){ logout(); return; }
-  const list = await r.json();
-  document.getElementById("chatCount").textContent = list.length;
-  const tb = document.querySelector("#chatTbl tbody"); tb.innerHTML = "";
-  list.forEach(c=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = "<td>"+esc(c.device)+"</td><td class='mono'>"+esc(c.id)+"</td><td>"+esc(c.name)+
-      "</td><td>"+esc(c.msgs)+"</td><td>"+esc(c.created?new Date(c.created*1000).toLocaleString():"")+"</td><td></td>";
-    const td = tr.lastElementChild;
-    const b = document.createElement("button"); b.className="del"; b.textContent="Удалить";
-    b.onclick = async ()=>{ if(!confirm("Удалить чат «"+c.name+"»?")) return;
-      const rr = await fetch("/api/admin/chats/"+c.id, {method:"DELETE", headers: authH()});
-      if(rr.ok) loadChats(); };
-    td.appendChild(b);
-    tb.appendChild(tr);
-  });
+function esc(s){return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+async function load(){
+  const code=document.getElementById('code').value.trim();
+  const out=document.getElementById('out'); const stats=document.getElementById('stats');
+  out.innerHTML='<div class="empty">загрузка…</div>'; stats.innerHTML='';
+  try{
+    const r=await fetch(API+'/admin?code='+encodeURIComponent(code),{headers:{'Content-Type':'application/json'}});
+    if(!r.ok){ out.innerHTML='<div class="err">Ошибка '+r.status+(r.status===403?' — неверный код':(r.status===429?' — лимит':''))+'</div>'; return; }
+    const logs=await r.json();
+    if(!Array.isArray(logs)||!logs.length){ out.innerHTML='<div class="empty">пока нет посетителей. Открой приложение через прокси — данные появятся здесь.</div>'; return; }
+    logs.reverse();
+    const ips=new Set(logs.map(l=>l.ip).filter(Boolean));
+    stats.innerHTML=
+      '<div class="stat"><b>'+logs.length+'</b><span>всего визитов</span></div>'+
+      '<div class="stat"><b>'+ips.size+'</b><span>уникальных IP</span></div>'+
+      '<div class="stat"><b>'+new Set(logs.map(l=>l.country).filter(Boolean)).size+'</b><span>стран</span></div>';
+    let rows='';
+    for(const l of logs){
+      const u=parseUA(l.ua);
+      const t=l.time?new Date(l.time).toLocaleString('ru-RU'):'';
+      rows+='<tr>'+
+        '<td>'+esc(t)+'</td>'+
+        '<td class="ip">'+esc(l.ip||'?')+'</td>'+
+        '<td>'+esc(l.country||'?')+'</td>'+
+        '<td>'+esc(l.asn||'?')+'</td>'+
+        '<td>'+u.browser+'<div class="ua">'+u.os+' · '+u.dev+'</div></td>'+
+        '<td class="ua">'+esc(l.ua||'?')+'</td>'+
+        '<td class="ua">'+esc(l.ref||'—')+'</td>'+
+      '</tr>';
+    }
+    out.innerHTML='<table><thead><tr><th>Время</th><th>IP</th><th>Страна</th><th>Провайдер/ASN</th><th>Браузер</th><th>User-Agent</th><th>Откуда</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }catch(e){ out.innerHTML='<div class="err">Сетевая ошибка: '+esc(e.message)+'<br>Возможно, воркер недоступен или CORS.</div>'; }
 }
-async function loadVisits(){
-  const r = await fetch("/api/admin/visits", {headers: authH()});
-  if(r.status === 403){ logout(); return; }
-  const list = await r.json();
-  document.getElementById("visitCount").textContent = list.length;
-  const tb = document.querySelector("#visitTbl tbody"); tb.innerHTML = "";
-  list.slice().reverse().forEach(v=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = "<td>"+esc(v.t)+"</td><td>"+esc(v.ip)+"</td><td>"+esc(v.host)+
-      "</td><td class='mono'>"+esc(v.ua)+"</td><td class='mono'>"+esc(v.ref)+
-      "</td><td>"+esc(v.path)+"</td><td>"+esc(v.dev)+"</td>";
-    tb.appendChild(tr);
-  });
-}
-function showPanel(){
-  document.getElementById("loginCard").style.display = "none";
-  document.getElementById("panel").style.display = "block";
-  loadChats(); loadVisits();
-}
-function logout(){ localStorage.removeItem(TOKEN_KEY); document.getElementById("loginCard").style.display="block"; document.getElementById("panel").style.display="none"; }
-
-document.getElementById("loginBtn").onclick = login;
-document.getElementById("pw").addEventListener("keydown", e=>{ if(e.key==="Enter") login(); });
-document.getElementById("refreshChats").onclick = loadChats;
-document.getElementById("refreshVisits").onclick = loadVisits;
-document.getElementById("logoutBtn").onclick = logout;
-if(token()) showPanel();
+document.getElementById('load').onclick=load;
+document.getElementById('refresh').onclick=function(){
+  if(timer){ clearInterval(timer); timer=null; this.textContent='Авто 15с'; return; }
+  load(); timer=setInterval(load,15000); this.textContent='Стоп авто';
+};
+load();
 </script>
 </body>
 </html>

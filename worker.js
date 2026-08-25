@@ -1,6 +1,9 @@
 // Cloudflare Worker (classic format): CORS-прокси к OpenCode Zen + опционально лог посетителей для админки.
 // KV/VISITS и ADMIN_CODE — опциональны (для админки позже). Без них работает только прокси.
 
+// Код доступа к админке (совпадает с тем, что знает владелец).
+const ADMIN_CODE = 'X8Ya_pVX-9RMVPmRPAZZgypBu-Gm8faPeFFmdavFLtV3_';
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
