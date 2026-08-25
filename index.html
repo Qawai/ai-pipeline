@@ -484,7 +484,6 @@
   <div class="sidebar">
     <div class="sb-head"><div class="brand"><span class="dot"></span><span>ИИ агенты<span class="ver">v4</span></span></div>
       <button class="icon-btn" id="themeBtn" title="Оформление"></button>
-        <button class="icon-btn" id="keyBtn" title="Ключ OpenRouter"></button>
     </div>
     <div class="sb-list" id="chatList"></div>
     <div class="sb-foot"><button class="btn" id="newChat">+ Новый чат</button></div>
@@ -558,15 +557,6 @@
     </div>
   </div>
 
-  <div class="modal" id="keyModal">
-    <div class="sheet" style="max-width:460px">
-      <h3>Ключ OpenRouter</h3>
-      <p class="hint">Приложение работает с общим бесплатным ключом. Можно вписать свой (Bearer) — он хранится только в этом браузере.</p>
-      <div class="row"><input class="an" id="keyInput" placeholder="sk-or-..."></div>
-      <div class="actions"><button class="btn ghost" id="keyCancel">Закрыть</button><button class="btn" id="keySave">Сохранить</button></div>
-    </div>
-  </div>
-
 <script>
 const ICON = {
   gear:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
@@ -583,15 +573,13 @@ document.getElementById('sendBtn').innerHTML=ICON.send;
 document.getElementById('stopBtn2').innerHTML=ICON.stop;
 document.getElementById('attachBtn').innerHTML=ICON.clip;
 document.getElementById('sbToggleBtn').innerHTML=ICON.menu;
-document.getElementById('keyBtn').innerHTML=ICON.key;
 
 const LS={key:'orkey',theme:'theme',radius:'radius',consent:'consent',chats:'chats',current:'current'};
 const DEFAULT_KEY='sk-FcavtdWDByE1TvvHu4qnMlwYryHYQxcQMWPMCgEHmxdsCZZeDRIkowS6UIGQ7cyH';
 const DEFAULT_MODEL='deepseek/deepseek-chat-v3-0324:free';
 const MODELS=['deepseek/deepseek-chat-v3-0324:free','deepseek/deepseek-r1-distill-llama-70b:free','meta-llama/llama-3.3-7b-instruct:free','google/gemini-2.0-flash-exp:free','qwen/qwen2.5-7b-instruct:free','microsoft/phi-4-mini-instruct:free','openchat/openchat-7b:free'];
 
-let KEY = localStorage.getItem(LS.key) || '';
-function getKey(){ return KEY || DEFAULT_KEY; }
+function getKey(){ return DEFAULT_KEY; }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
 let CONSENT = localStorage.getItem(LS.consent)==='1';
@@ -816,10 +804,6 @@ document.getElementById('themeClose').onclick=()=>document.getElementById('theme
 const rad=document.getElementById('radius'); rad.value=localStorage.getItem(LS.radius)||14; document.documentElement.style.setProperty('--radius',rad.value+'px'); document.getElementById('radiusVal').textContent=rad.value;
 rad.oninput=()=>{ document.documentElement.style.setProperty('--radius',rad.value+'px'); document.getElementById('radiusVal').textContent=rad.value; localStorage.setItem(LS.radius,rad.value); };
 applyTheme(localStorage.getItem(LS.theme)||'default');
-
-document.getElementById('keyBtn').onclick=()=>{ document.getElementById('keyInput').value=KEY; document.getElementById('keyModal').classList.add('open'); };
-document.getElementById('keyCancel').onclick=()=>document.getElementById('keyModal').classList.remove('open');
-document.getElementById('keySave').onclick=()=>{ KEY=document.getElementById('keyInput').value.trim(); localStorage.setItem(LS.key, KEY); document.getElementById('keyModal').classList.remove('open'); alert('Ключ сохранён (только в этом браузере).'); };
 
 function initApp(){ loadChats(); }
 const _cm=document.getElementById('consentModal'), _cc=document.getElementById('consentChk'), _ca=document.getElementById('consentAccept'), _cd=document.getElementById('consentDecline');
