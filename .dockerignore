@@ -1,8 +1,7 @@
 chats.json
-__pycache__/
-*.pyc
-*.tmp
 cloudflared.exe
 cf.log
 v.txt
 _cf.py
+__pycache__/
+*.pyc

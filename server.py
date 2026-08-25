@@ -210,7 +210,7 @@ def run_pipeline(chat, send):
                 role = ag.get("role") or ""
                 model = (ag.get("model") or "").strip()
                 mode = (ag.get("mode") or "plan").strip().lower()
-                agent_id = "guardian-build" if mode == "build" else AGENT_NAME
+                agent_id = AGENT_NAME
                 prompt = build_prompt(role, chat.get("transcript", ""), chat.get("behavior", ""))
                 send({
                     "type": "step_start",
@@ -449,7 +449,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     load_chats()
     port = int(os.environ.get("PORT", "8787"))
-    srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     print("AI-orchestrator запущен: http://127.0.0.1:%d" % port)
     try:
         srv.serve_forever()

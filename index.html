@@ -457,7 +457,6 @@
       <div class="actions">
         <div class="mode-switch" id="modeSwitch">
           <button data-mode="plan" class="active">Plan</button>
-          <button data-mode="build">Build</button>
         </div>
       </div>
     </div>
@@ -486,7 +485,7 @@
         <input class="rounds" id="maxRounds" type="number" min="1" max="6" value="4"></div>
       <h3 style="margin-top:20px">Общий стиль / поведение</h3>
       <textarea class="bh" id="behavior" placeholder="Как агенты должны общаться, формат ответа, тон…"></textarea>
-      <div class="hint">Plan — агенты только рассуждают. Build — могут выполнять команды и менять файлы проекта. Число кругов определяется автоматически: если агенты задают друг другу вопросы, обсуждение продолжается (до указанного максимума).</div>
+      <div class="hint">Plan — агенты только рассуждают и обсуждают, не выполняют команд на компьютере. Число кругов определяется автоматически: если агенты задают друг другу вопросы, обсуждение продолжается (до указанного максимума).</div>
       <div class="actions">
         <button class="btn ghost" id="setCancel">Закрыть</button>
         <button class="btn" id="setSave">Сохранить</button>
@@ -557,8 +556,7 @@ async function openChat(id){
   const wrap=m.querySelector('.msg-wrap');
   (CHAT.messages||[]).forEach(msg=>wrap.appendChild(renderMsg(msg)));
   m.scrollTop=m.scrollHeight;renderList();
-  const allBuild=(CHAT.agents||[]).length>0 && (CHAT.agents||[]).every(a=>(a.mode||'plan')==='build');
-  setModeSwitch(allBuild?'build':'plan');
+  setModeSwitch('plan');
 }
 
 function renderMsg(m){
@@ -683,7 +681,7 @@ document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter'
 
 function setModeSwitch(m){
   document.querySelectorAll('#modeSwitch button').forEach(btn=>{
-    const on=btn.dataset.mode===m;btn.classList.toggle('active',on);btn.classList.toggle('build',on&&m==='build');
+    const on=btn.dataset.mode===m;btn.classList.toggle('active',on);
   });
 }
 document.querySelectorAll('#modeSwitch button').forEach(btn=>{
@@ -713,7 +711,7 @@ function renderAgents(){
     }
     const name=document.createElement('input');name.className='an';name.placeholder='Имя агента';name.value=a.name||'';name.oninput=e=>a.name=e.target.value;d.appendChild(name);
     const mode=document.createElement('div');mode.className='mode';mode.innerHTML='<span>Режим:</span>';
-    const ms=document.createElement('select');ms.innerHTML='<option value="plan">Plan (только рассуждения)</option><option value="build">Build (может действовать)</option>';ms.value=a.mode||'plan';ms.onchange=e=>a.mode=e.target.value;mode.appendChild(ms);d.appendChild(mode);
+    const ms=document.createElement('select');ms.innerHTML='<option value="plan">Plan (только рассуждения)</option>';ms.value=a.mode||'plan';ms.disabled=true;mode.appendChild(ms);d.appendChild(mode);
     const sel=document.createElement('select');sel.className='am';sel.innerHTML='<option value="">— модель по умолчанию (hy3-free) —</option>'+MODELS.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join('');sel.value=a.model||'';sel.onchange=e=>a.model=e.target.value;d.appendChild(sel);
     const role=document.createElement('textarea');role.className='ar';role.placeholder='Роль агента: что он делает в этом конвейере';role.value=a.role||'';role.oninput=e=>a.role=e.target.value;d.appendChild(role);
     el.appendChild(d);
