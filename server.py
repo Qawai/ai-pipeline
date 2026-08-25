@@ -14,8 +14,8 @@ CHATS_FILE = os.path.join(HERE, "chats.json")
 MAX_PREV = 16000
 
 RUN = {"stop": threading.Event(), "proc": None, "active": False, "chat_id": None}
-CHATS = {}
-CHATS_ORDER = []
+CHATS = {}        # deviceId -> {chatId: chat}
+CHATS_ORDER = {}  # deviceId -> [chatId]
 LOCK = threading.RLock()
 MODELS = []
 MODELS_LOCK = threading.Lock()
@@ -54,21 +54,37 @@ threading.Thread(target=fetch_models, daemon=True).start()
 
 def load_chats():
     global CHATS, CHATS_ORDER
+    CHATS, CHATS_ORDER = {}, {}
     try:
         with open(CHATS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-        CHATS = {c["id"]: c for c in data.get("chats", [])}
-        CHATS_ORDER = [c["id"] for c in data.get("chats", []) if c["id"] in CHATS]
+        if isinstance(data, list):
+            data = {"devices": {"default": data}}
+        elif isinstance(data, dict) and "chats" in data:
+            data = {"devices": {"default": data.get("chats", [])}}
+        for dev, clist in (data.get("devices") or {}).items():
+            by = {}
+            order = []
+            for c in clist:
+                if not isinstance(c, dict) or "id" not in c:
+                    continue
+                by[c["id"]] = c
+                order.append(c["id"])
+            CHATS[dev] = by
+            CHATS_ORDER[dev] = order
     except Exception:
-        CHATS, CHATS_ORDER = {}, []
+        CHATS, CHATS_ORDER = {}, {}
 
 
 def save_chats():
     with LOCK:
         try:
+            out = {"devices": {}}
+            for dev, by in CHATS.items():
+                order = CHATS_ORDER.get(dev, [])
+                out["devices"][dev] = [by[i] for i in order if i in by]
             with open(CHATS_FILE, "w", encoding="utf-8") as f:
-                json.dump({"chats": [CHATS[i] for i in CHATS_ORDER]}, f,
-                          ensure_ascii=False, indent=1)
+                json.dump(out, f, ensure_ascii=False, indent=1)
         except Exception:
             pass
 
@@ -288,6 +304,14 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length) if length else b""
         return json.loads(raw.decode("utf-8")) if raw else {}
 
+    def dev_store(self):
+        dev = (self.headers.get("X-Device-Id") or "default").strip() or "default"
+        if dev != "default" and dev not in CHATS and "default" in CHATS and CHATS["default"]:
+            CHATS[dev] = CHATS.pop("default")
+            CHATS_ORDER[dev] = CHATS_ORDER.pop("default", [])
+            save_chats()
+        return dev, CHATS.setdefault(dev, {}), CHATS_ORDER.setdefault(dev, [])
+
     def do_GET(self):
         if self.path.startswith("/api/models"):
             ensure_models()
@@ -300,8 +324,9 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(payload.encode("utf-8"))
             return
         if self.path == "/api/chats":
+            _, by, order = self.dev_store()
             with LOCK:
-                lst = [{"id": i, "name": CHATS[i]["name"]} for i in CHATS_ORDER]
+                lst = [{"id": i, "name": by[i]["name"]} for i in order if i in by]
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(json.dumps(lst).encode("utf-8"))))
@@ -310,8 +335,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         m = re.match(r"^/api/chats/([^/]+)$", self.path)
         if m:
+            _, by, _ = self.dev_store()
             with LOCK:
-                chat = CHATS.get(m.group(1))
+                chat = by.get(m.group(1))
                 payload = json.dumps(chat, ensure_ascii=False) if chat else "null"
             self.send_response(200 if chat else 404)
             self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -338,22 +364,24 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/chats":
             cid = new_id()
+            _, by, order = self.dev_store()
             with LOCK:
-                CHATS[cid] = {
+                by[cid] = {
                     "id": cid, "name": "Новый чат", "agents": [
                         {"name": "", "role": "", "model": ""},
                         {"name": "", "role": "", "model": ""},
                     ],
                     "messages": [], "transcript": "", "behavior": "", "rounds": 1, "created": time.time(),
                 }
-                if cid not in CHATS_ORDER:
-                    CHATS_ORDER.append(cid)
+                if cid not in order:
+                    order.append(cid)
                 save_chats()
             self._json({"id": cid})
             return
         m = re.match(r"^/api/chats/([^/]+)/send$", self.path)
         if m:
-            chat = CHATS.get(m.group(1))
+            _, by, _ = self.dev_store()
+            chat = by.get(m.group(1))
             if not chat:
                 self.send_error(404)
                 return
@@ -411,7 +439,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_PUT(self):
         m = re.match(r"^/api/chats/([^/]+)$", self.path)
         if m:
-            chat = CHATS.get(m.group(1))
+            _, by, _ = self.dev_store()
+            chat = by.get(m.group(1))
             if not chat:
                 self.send_error(404)
                 return
@@ -432,11 +461,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         m = re.match(r"^/api/chats/([^/]+)$", self.path)
         if m:
+            _, by, order = self.dev_store()
             cid = m.group(1)
             with LOCK:
-                if cid in CHATS:
-                    del CHATS[cid]
-                    CHATS_ORDER.remove(cid)
+                if cid in by:
+                    del by[cid]
+                    if cid in order:
+                        order.remove(cid)
                     save_chats()
             self._json({"ok": True})
             return

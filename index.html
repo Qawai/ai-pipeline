@@ -559,9 +559,10 @@ document.getElementById('attachBtn').innerHTML=ICON.clip;
 document.getElementById('sbToggleBtn').innerHTML=ICON.menu;
 
 const MODELS=[];
+const DEVICE_ID=(function(){let d=localStorage.getItem('deviceId');if(!d){d=(window.crypto&&crypto.randomUUID?crypto.randomUUID():'d'+Date.now()+Math.random().toString(16).slice(2));localStorage.setItem('deviceId',d);}return d;})();
 let CHATS=[], CURRENT=null, CHAT={}, ATTACHED=[];
 
-async function api(u,m){const r=await fetch(u,m||{});return await r.json();}
+async function api(u,m){m=m||{};m.headers=Object.assign({'X-Device-Id':DEVICE_ID},m.headers||{});const r=await fetch(u,m);return await r.json();}
 async function loadModels(){try{const d=await api('/api/models');d.forEach(x=>MODELS.push(x.value));}catch(e){}}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
@@ -650,7 +651,7 @@ async function sendMsg(){
   m.scrollTop=m.scrollHeight;
   const bubbles={};showStop(true);
   try{
-    const r=await fetch('/api/chats/'+CURRENT+'/send',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await fetch('/api/chats/'+CURRENT+'/send',{method:'POST',headers:{'Content-Type':'application/json','X-Device-Id':DEVICE_ID},
       body:JSON.stringify({message:text,files})});
     const reader=r.body.getReader(),dec=new TextDecoder();let buf='';
     while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});
